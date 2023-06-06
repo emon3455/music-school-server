@@ -30,7 +30,24 @@ async function run() {
     await client.connect();
 
 
-    
+    const usersCollections = client.db("musicSchollingDB").collection("users");
+
+
+     // adding user
+     app.post("/users", async (req, res) => {
+        const user = req.body;
+  
+        const query = { email: user.email };
+        const existingUser = await usersCollections.findOne(query);
+  
+        if (existingUser) {
+          return res.send({});
+        }
+  
+        const result = await usersCollections.insertOne(user);
+        res.send(result);
+  
+    });
 
 
     // Send a ping to confirm a successful connection
