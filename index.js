@@ -32,6 +32,7 @@ async function run() {
 
     const usersCollections = client.db("musicSchollingDB").collection("users");
     const classesCollections = client.db("musicSchollingDB").collection("classes");
+    const teachersCollections = client.db("musicSchollingDB").collection("teachers");
 
 
      // adding user
@@ -57,6 +58,16 @@ async function run() {
     app.get("/classes", async(req,res)=>{
 
       const result = await classesCollections.find().sort({ totalStudents: -1 }).toArray();
+      res.send(result);
+
+    })
+
+    // teachers api:
+
+    // get api for teachers:
+    app.get("/teachers", async(req,res)=>{
+
+      const result = await teachersCollections.find().toArray();
       res.send(result);
 
     })
