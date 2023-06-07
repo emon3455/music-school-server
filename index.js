@@ -31,6 +31,7 @@ async function run() {
 
 
     const usersCollections = client.db("musicSchollingDB").collection("users");
+    const classesCollections = client.db("musicSchollingDB").collection("classes");
 
 
      // adding user
@@ -48,6 +49,17 @@ async function run() {
         res.send(result);
   
     });
+
+
+    // classes api:
+
+    // get api for classes:
+    app.get("/classes", async(req,res)=>{
+
+      const result = await classesCollections.find().sort({ totalStudents: -1 }).toArray();
+      res.send(result);
+
+    })
 
 
     // Send a ping to confirm a successful connection
