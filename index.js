@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const jwt = require('jsonwebtoken');
 const app = express();
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const port = process.env.PORT || 5000;
@@ -9,6 +10,29 @@ const port = process.env.PORT || 5000;
 // middle ware:
 app.use(cors());
 app.use(express.json());
+
+const verifyJWT = (req, res, next)=>{
+  const authrization = req.headers.authorization;
+
+
+  if(!authrization){
+    return res.status(401).send({error: true, message: "unauthorised Access"});
+  }
+
+
+  const token = authrization.split(" ")[1];
+
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err,decoded)=>{
+    if(err){
+      return res.status(401).send({error: true, message: "unauthorised Access"})
+    }
+    req.decoded = decoded;
+    next();
+  })
+
+
+}
 
 
 
@@ -35,27 +59,41 @@ async function run() {
     const teachersCollections = client.db("musicSchollingDB").collection("teachers");
 
 
-     // adding user
-     app.post("/users", async (req, res) => {
-        const user = req.body;
-  
-        const query = { email: user.email };
-        const existingUser = await usersCollections.findOne(query);
-  
-        if (existingUser) {
-          return res.send({});
-        }
-  
-        const result = await usersCollections.insertOne(user);
-        res.send(result);
-  
+
+    // JWT:
+    // jwt token:
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "12hr"
+      })
+      res.send({ token })
+    })
+
+
+
+
+    // adding user
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+
+      const query = { email: user.email };
+      const existingUser = await usersCollections.findOne(query);
+
+      if (existingUser) {
+        return res.send({});
+      }
+
+      const result = await usersCollections.insertOne(user);
+      res.send(result);
+
     });
 
 
     // classes api:
 
     // get api for classes:
-    app.get("/classes", async(req,res)=>{
+    app.get("/classes",verifyJWT, async (req, res) => {
 
       const result = await classesCollections.find().sort({ totalStudents: -1 }).toArray();
       res.send(result);
@@ -65,7 +103,7 @@ async function run() {
     // teachers api:
 
     // get api for teachers:
-    app.get("/teachers", async(req,res)=>{
+    app.get("/teachers", async (req, res) => {
 
       const result = await teachersCollections.find().toArray();
       res.send(result);
@@ -85,10 +123,10 @@ run().catch(console.dir);
 
 
 
-app.get("/", (req,res)=>{
-    res.send("music scholling is running...");
+app.get("/", (req, res) => {
+  res.send("music scholling is running...");
 })
 
-app.listen(port, (req,res)=>{
-    console.log(`music school API is running on port: ${port}`);
+app.listen(port, (req, res) => {
+  console.log(`music school API is running on port: ${port}`);
 })
