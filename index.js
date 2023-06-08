@@ -3,7 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const jwt = require('jsonwebtoken');
 const app = express();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
 
@@ -11,21 +11,21 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const verifyJWT = (req, res, next)=>{
+const verifyJWT = (req, res, next) => {
   const authrization = req.headers.authorization;
 
 
-  if(!authrization){
-    return res.status(401).send({error: true, message: "unauthorised Access"});
+  if (!authrization) {
+    return res.status(401).send({ error: true, message: "unauthorised Access" });
   }
 
 
   const token = authrization.split(" ")[1];
 
 
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err,decoded)=>{
-    if(err){
-      return res.status(401).send({error: true, message: "unauthorised Access"})
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ error: true, message: "unauthorised Access" })
     }
     req.decoded = decoded;
     next();
@@ -70,7 +70,27 @@ async function run() {
       res.send({ token })
     })
 
+    // middle wire for verifyAdmin:
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollections.findOne(query)
+      if (user?.role !== "admin") {
+        return res.status(403).send({ error: true, message: "forbidded Access" });
+      }
+      next();
+    }
 
+    // middle wire for verifyAdmin:
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollections.findOne(query)
+      if (user?.role !== "instructor") {
+        return res.status(403).send({ error: true, message: "forbidded Access" });
+      }
+      next();
+    }
 
 
     // adding user
@@ -90,10 +110,10 @@ async function run() {
     });
 
 
-    // classes api:
+    //----------classes api------------------
 
     // get api for classes:
-    app.get("/classes",verifyJWT, async (req, res) => {
+    app.get("/classes", async (req, res) => {
 
       const result = await classesCollections.find().sort({ totalStudents: -1 }).toArray();
       res.send(result);
@@ -106,6 +126,78 @@ async function run() {
     app.get("/teachers", async (req, res) => {
 
       const result = await teachersCollections.find().toArray();
+      res.send(result);
+
+    })
+
+
+    //-----------admin panner apis:----------------
+
+    // check admin :
+    app.get("/users/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ admin: false });
+      }
+
+      const query = { email: email };
+      const user = await usersCollections.findOne(query);
+      const result = { admin: user?.role === "admin" };
+      res.send(result);
+    })
+
+    // check instructor :
+    app.get("/users/instructor/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ admin: false });
+      }
+
+      const query = { email: email };
+      const user = await usersCollections.findOne(query);
+      const result = { instructor: user?.role === "instructor" };
+      res.send(result);
+    })
+
+    // make admin:
+    app.patch("/users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+
+      const updatedDoc = {
+        $set: {
+          role: "admin"
+        },
+      }
+
+      const result = await usersCollections.updateOne(query, updatedDoc);
+      res.send(result);
+
+    })
+
+    // make instructor:
+    app.patch("/users/instructor/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+
+      const updatedDoc = {
+        $set: {
+          role: "instructor"
+        },
+      }
+
+      const result = await usersCollections.updateOne(query, updatedDoc);
+      res.send(result);
+
+    })
+
+
+    // get api for users:
+    app.get("/users", verifyJWT, verifyAdmin, async(req, res) => {
+
+      const result = await usersCollections.find().toArray();
       res.send(result);
 
     })
