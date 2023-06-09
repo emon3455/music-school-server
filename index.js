@@ -152,7 +152,7 @@ async function run() {
       res.send(result);
     })
 
-    // instructor apis:
+    // ------------------instructor apis-------------:
 
     // get api for instructors:
     app.get("/instructors", async (req, res) => {
@@ -163,9 +163,15 @@ async function run() {
     })
 
 
-    //-----------admin panner apis:----------------
+    //---------------admin panner apis:----------------
 
+    // get api for users:
+    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
 
+      const result = await usersCollections.find().toArray();
+      res.send(result);
+
+    })
 
     // make admin:
     app.patch("/users/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
@@ -185,7 +191,7 @@ async function run() {
 
 
     // make instructor:
-    app.patch("/users/instructor/:id", verifyJWT, verifyAdmin, async (req, res) => {
+    app.patch("/users/instructor/:id",verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
 
@@ -200,17 +206,8 @@ async function run() {
 
     })
 
-    // get api for users:
-    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
-
-      const result = await usersCollections.find().toArray();
-      res.send(result);
-
-    })
-
-
     // approved course:
-    app.patch("/classes/approved/:id", verifyJWT, async (req, res) => {
+    app.patch("/classes/approved/:id",verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
 
@@ -226,7 +223,7 @@ async function run() {
     })
 
     // deny course:
-    app.patch("/classes/deny/:id", async (req, res) => {
+    app.patch("/classes/deny/:id",verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
 
@@ -243,15 +240,16 @@ async function run() {
 
 
     // send Feedback:
-    app.patch("/classes/feedback/:id", async(req, res) => {
+    app.patch("/classes/feedback/:id",verifyJWT, verifyAdmin, async(req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) }
       const feedback = req.body;
-      console.log(feedback);
+
+      const query = {_id: new ObjectId(id) }
+
 
       const updatedDoc = {
         $set: {
-          feedback: feedback
+          feedback: feedback.feedback
         },
       }
 
