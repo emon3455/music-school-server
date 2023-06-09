@@ -171,6 +171,38 @@ async function run() {
 
     })
 
+    // my classes:
+    app.get("/myclasses/:email",verifyJWT, verifyInstructor, async(req, res)=>{
+
+      const email = req.params.email;
+
+      const query = { instructorEmail: email };
+      const result = await classesCollections.find(query).toArray();
+      res.send(result);
+
+    })
+
+    // update myclasses:
+    app.patch("/myclasses/:id",verifyJWT, verifyInstructor, async(req, res) => {
+      const id = req.params.id;
+      const updatedInfo = req.body;
+
+      const query = {_id: new ObjectId(id) }
+
+
+      const updatedDoc = {
+        $set: {
+          name: updatedInfo.name,
+          image: updatedInfo.image,
+          availableSeats: updatedInfo.availableSeats,
+          price: updatedInfo.price
+        },
+      }
+
+      const result = await classesCollections.updateOne(query, updatedDoc);
+      res.send(result);
+
+    })
 
     //---------------admin panner apis:----------------
 
