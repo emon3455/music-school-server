@@ -162,6 +162,15 @@ async function run() {
 
     })
 
+    // add class:
+    app.post("/classes",verifyJWT, verifyInstructor, async (req, res) => {
+
+      const newClass = req.body;
+      const result = await classesCollections.insertOne(newClass);
+      res.send(result);
+
+    })
+
 
     //---------------admin panner apis:----------------
 
