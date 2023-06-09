@@ -10,17 +10,15 @@ const port = process.env.PORT || 5000;
 // middle ware:
 app.use(cors());
 app.use(express.json());
+
 const verifyJWT = (req, res, next) => {
   const authrization = req.headers.authorization;
-
 
   if (!authrization) {
     return res.status(401).send({ error: true, message: "unauthorised Access" });
   }
 
-
   const token = authrization.split(" ")[1];
-
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) {
@@ -60,7 +58,7 @@ async function run() {
     app.post("/jwt", (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "1hr"
+        expiresIn: "24hr"
       })
       res.send({ token })
     })
@@ -89,7 +87,7 @@ async function run() {
     }
 
 
-    // check is a user is admin or not
+    // check if a user is admin or not
     app.get("/users/admin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
 
@@ -118,6 +116,7 @@ async function run() {
       res.send(result);
     })
 
+
     // adding user
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -143,6 +142,14 @@ async function run() {
       const result = await classesCollections.find().sort({ totalStudents: -1 }).toArray();
       res.send(result);
 
+    })
+
+    // get single class Info:
+    app.get("/classes/:id", async(req,res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await classesCollections.findOne(query);
+      res.send(result);
     })
 
     // instructor apis:
@@ -235,6 +242,23 @@ async function run() {
     })
 
 
+    // send Feedback:
+    app.patch("/classes/feedback/:id", async(req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const feedback = req.body;
+      console.log(feedback);
+
+      const updatedDoc = {
+        $set: {
+          feedback: feedback
+        },
+      }
+
+      const result = await classesCollections.updateOne(query, updatedDoc);
+      res.send(result);
+
+    })
 
 
     // Send a ping to confirm a successful connection
