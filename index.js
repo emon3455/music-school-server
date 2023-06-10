@@ -51,6 +51,7 @@ async function run() {
 
     const usersCollections = client.db("musicSchollingDB").collection("users");
     const classesCollections = client.db("musicSchollingDB").collection("classes");
+    const selectedClassCollections = client.db("musicSchollingDB").collection("selectedClass");
     const teachersCollections = client.db("musicSchollingDB").collection("teachers");
 
 
@@ -150,6 +151,25 @@ async function run() {
       const query = {_id: new ObjectId(id)}
       const result = await classesCollections.findOne(query);
       res.send(result);
+    })
+
+    // update classes:
+    app.patch("/classes/:id", async(req, res) => {
+      const id = req.params.id;
+      const updatedInfo = req.body;
+
+      const query = { _id: new ObjectId(id) }
+
+      const updatedDoc = {
+        $set: {
+          availableSeats: updatedInfo.availableSeats,
+          totalStudents: updatedInfo.totalStudents
+        },
+      }
+
+      const result = await classesCollections.updateOne(query, updatedDoc);
+      res.send(result);
+
     })
 
     // ------------------instructor apis-------------:
@@ -298,6 +318,19 @@ async function run() {
       res.send(result);
 
     })
+
+    // ----------student pannel---------------
+    app.post("/selectedClass", async (req, res) => {
+
+      const selectedClass = req.body;
+      const result = await selectedClassCollections.insertOne(selectedClass);
+      res.send(result);
+
+    })
+
+
+
+
 
 
     // Send a ping to confirm a successful connection
