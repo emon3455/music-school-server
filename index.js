@@ -328,7 +328,24 @@ async function run() {
 
     })
 
+    app.get("/selectedClass",verifyJWT, async (req, res) => {
 
+      const email = req.query.email;
+
+      if (!email) {
+        res.send([]);
+      }
+
+      const decodedEmail = req.decoded.email;
+      if(email!==decodedEmail){
+        return res.status(403).send({error: true, message:"forbidden Access"});
+      }
+
+      const query = {studentEmail: email}
+      const result = await selectedClassCollections.find(query).toArray();
+      res.send(result);
+
+    })
 
 
 
