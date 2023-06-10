@@ -368,6 +368,8 @@ async function run() {
     })
 
 
+
+
     //-------- payment apis---------:
 
     // creating payment intent
@@ -409,6 +411,25 @@ async function run() {
     })
 
 
+    // get Enrolled Class:
+    app.get("/enrolledClasses",verifyJWT, async (req, res) => {
+
+      const email = req.query.email;
+
+      if (!email) {
+        res.send([]);
+      }
+
+      const decodedEmail = req.decoded.email;
+      if(email!==decodedEmail){
+        return res.status(403).send({error: true, message:"forbidden Access"});
+      }
+
+      const query = {studentEmail: email}
+      const result = await paymentsCollections.find(query).toArray();
+      res.send(result);
+
+    })
 
 
     // Send a ping to confirm a successful connection
