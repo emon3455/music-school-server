@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const jwt = require('jsonwebtoken');
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
@@ -53,6 +54,7 @@ async function run() {
     const classesCollections = client.db("musicSchollingDB").collection("classes");
     const selectedClassCollections = client.db("musicSchollingDB").collection("selectedClass");
     const teachersCollections = client.db("musicSchollingDB").collection("teachers");
+    const paymentsCollections = client.db("musicSchollingDB").collection("payments");
 
 
     // jwt token:
@@ -154,23 +156,23 @@ async function run() {
     })
 
     // update classes:
-    app.patch("/classes/:id", async(req, res) => {
-      const id = req.params.id;
-      const updatedInfo = req.body;
+    // app.patch("/classes/:id", async(req, res) => {
+    //   const id = req.params.id;
+    //   const updatedInfo = req.body;
 
-      const query = { _id: new ObjectId(id) }
+    //   const query = { _id: new ObjectId(id) }
 
-      const updatedDoc = {
-        $set: {
-          availableSeats: updatedInfo.availableSeats,
-          totalStudents: updatedInfo.totalStudents
-        },
-      }
+    //   const updatedDoc = {
+    //     $set: {
+    //       availableSeats: updatedInfo.availableSeats,
+    //       totalStudents: updatedInfo.totalStudents
+    //     },
+    //   }
 
-      const result = await classesCollections.updateOne(query, updatedDoc);
-      res.send(result);
+    //   const result = await classesCollections.updateOne(query, updatedDoc);
+    //   res.send(result);
 
-    })
+    // })
 
     // ------------------instructor apis-------------:
 
@@ -320,6 +322,7 @@ async function run() {
     })
 
     // ----------student pannel---------------
+    // add selcted class
     app.post("/selectedClass", async (req, res) => {
 
       const selectedClass = req.body;
@@ -328,6 +331,7 @@ async function run() {
 
     })
 
+    // get selected class
     app.get("/selectedClass",verifyJWT, async (req, res) => {
 
       const email = req.query.email;
@@ -347,11 +351,61 @@ async function run() {
 
     })
 
+    // delete seleted class
     app.delete("/selectedClass/:id", async(req,res)=>{
         const id = req.params.id;
         const query = {_id: new ObjectId(id)}
         const result = await selectedClassCollections.deleteOne(query);
         res.send(result);
+    })
+
+    // get single slected Class:
+    app.get("/selectedClass/:id",async(req,res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const result = await selectedClassCollections.findOne(query);
+      res.send(result);
+    })
+
+
+    //-------- payment apis---------:
+
+    // creating payment intent
+    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    })
+
+    // payment api:
+    app.post("/payments", verifyJWT, async(req,res)=>{
+
+      const payment = req.body;
+      const insertedResult = await paymentsCollections.insertOne(payment);
+
+      const query={_id: new ObjectId(payment.selectedClassId)};
+      const deleteResult = await selectedClassCollections.deleteOne(query);
+
+
+      const updateQuery = { _id: new ObjectId(payment.classId) }
+      const paidClass = await classesCollections.findOne(updateQuery);
+      const updatedDoc = {
+        $set: {
+          availableSeats:  paidClass.availableSeats-1,
+          totalStudents:  paidClass.totalStudents+1
+        },
+      }
+      const updateResult = await classesCollections.updateOne(updateQuery, updatedDoc);
+
+      res.send({insertedResult, deleteResult, updateResult});
     })
 
 
