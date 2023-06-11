@@ -148,9 +148,9 @@ async function run() {
     })
 
     // get single class Info:
-    app.get("/classes/:id", async(req,res)=>{
+    app.get("/classes/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
       const result = await classesCollections.findOne(query);
       res.send(result);
     })
@@ -166,7 +166,7 @@ async function run() {
     })
 
     // add class:
-    app.post("/classes",verifyJWT, verifyInstructor, async (req, res) => {
+    app.post("/classes", verifyJWT, verifyInstructor, async (req, res) => {
 
       const newClass = req.body;
       const result = await classesCollections.insertOne(newClass);
@@ -175,7 +175,7 @@ async function run() {
     })
 
     // my classes:
-    app.get("/myclasses/:email",verifyJWT, verifyInstructor, async(req, res)=>{
+    app.get("/myclasses/:email", verifyJWT, verifyInstructor, async (req, res) => {
 
       const email = req.params.email;
 
@@ -186,11 +186,11 @@ async function run() {
     })
 
     // update myclasses:
-    app.patch("/myclasses/:id",verifyJWT, verifyInstructor, async(req, res) => {
+    app.patch("/myclasses/:id", verifyJWT, verifyInstructor, async (req, res) => {
       const id = req.params.id;
       const updatedInfo = req.body;
 
-      const query = {_id: new ObjectId(id) }
+      const query = { _id: new ObjectId(id) }
 
 
       const updatedDoc = {
@@ -235,8 +235,9 @@ async function run() {
 
 
     // make instructor:
-    app.patch("/users/instructor/:id",verifyJWT, verifyAdmin, async (req, res) => {
+    app.patch("/users/instructor/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
+
       const query = { _id: new ObjectId(id) }
 
       const updatedDoc = {
@@ -244,14 +245,22 @@ async function run() {
           role: "instructor"
         },
       }
-
       const result = await usersCollections.updateOne(query, updatedDoc);
-      res.send(result);
+
+      const instructor = req.body;
+      const teacher = {
+        image: instructor.image,
+        name: instructor.name,
+        email: instructor.email
+      }
+      const instructorResult = await teachersCollections.insertOne(teacher);
+
+      res.send({ result, instructorResult });
 
     })
 
     // approved course:
-    app.patch("/classes/approved/:id",verifyJWT, verifyAdmin, async (req, res) => {
+    app.patch("/classes/approved/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
 
@@ -267,7 +276,7 @@ async function run() {
     })
 
     // deny course:
-    app.patch("/classes/deny/:id",verifyJWT, verifyAdmin, async (req, res) => {
+    app.patch("/classes/deny/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
 
@@ -284,11 +293,11 @@ async function run() {
 
 
     // send Feedback:
-    app.patch("/classes/feedback/:id",verifyJWT, verifyAdmin, async(req, res) => {
+    app.patch("/classes/feedback/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const feedback = req.body;
 
-      const query = {_id: new ObjectId(id) }
+      const query = { _id: new ObjectId(id) }
 
 
       const updatedDoc = {
@@ -313,7 +322,7 @@ async function run() {
     })
 
     // get selected class
-    app.get("/selectedClass",verifyJWT, async (req, res) => {
+    app.get("/selectedClass", verifyJWT, async (req, res) => {
 
       const email = req.query.email;
 
@@ -322,28 +331,28 @@ async function run() {
       }
 
       const decodedEmail = req.decoded.email;
-      if(email!==decodedEmail){
-        return res.status(403).send({error: true, message:"forbidden Access"});
+      if (email !== decodedEmail) {
+        return res.status(403).send({ error: true, message: "forbidden Access" });
       }
 
-      const query = {studentEmail: email}
+      const query = { studentEmail: email }
       const result = await selectedClassCollections.find(query).toArray();
       res.send(result);
 
     })
 
     // delete seleted class
-    app.delete("/selectedClass/:id", async(req,res)=>{
-        const id = req.params.id;
-        const query = {_id: new ObjectId(id)}
-        const result = await selectedClassCollections.deleteOne(query);
-        res.send(result);
+    app.delete("/selectedClass/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await selectedClassCollections.deleteOne(query);
+      res.send(result);
     })
 
     // get single slected Class:
-    app.get("/selectedClass/:id",async(req,res)=>{
+    app.get("/selectedClass/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const result = await selectedClassCollections.findOne(query);
       res.send(result);
     })
@@ -369,12 +378,12 @@ async function run() {
     })
 
     // payment api:
-    app.post("/payments", verifyJWT, async(req,res)=>{
+    app.post("/payments", verifyJWT, async (req, res) => {
 
       const payment = req.body;
       const insertedResult = await paymentsCollections.insertOne(payment);
 
-      const query={_id: new ObjectId(payment.selectedClassId)};
+      const query = { _id: new ObjectId(payment.selectedClassId) };
       const deleteResult = await selectedClassCollections.deleteOne(query);
 
 
@@ -382,18 +391,18 @@ async function run() {
       const paidClass = await classesCollections.findOne(updateQuery);
       const updatedDoc = {
         $set: {
-          availableSeats:  paidClass.availableSeats-1,
-          totalStudents:  paidClass.totalStudents+1
+          availableSeats: paidClass.availableSeats - 1,
+          totalStudents: paidClass.totalStudents + 1
         },
       }
       const updateResult = await classesCollections.updateOne(updateQuery, updatedDoc);
 
-      res.send({insertedResult, deleteResult, updateResult});
+      res.send({ insertedResult, deleteResult, updateResult });
     })
 
 
     // get Enrolled Class:
-    app.get("/enrolledClasses",verifyJWT, async (req, res) => {
+    app.get("/enrolledClasses", verifyJWT, async (req, res) => {
 
       const email = req.query.email;
 
@@ -402,12 +411,12 @@ async function run() {
       }
 
       const decodedEmail = req.decoded.email;
-      if(email!==decodedEmail){
-        return res.status(403).send({error: true, message:"forbidden Access"});
+      if (email !== decodedEmail) {
+        return res.status(403).send({ error: true, message: "forbidden Access" });
       }
 
-      const query = {studentEmail: email}
-      const result = await paymentsCollections.find(query).toArray();
+      const query = { studentEmail: email }
+      const result = await paymentsCollections.find(query).sort({ date: -1 }).toArray();
       res.send(result);
 
     })
